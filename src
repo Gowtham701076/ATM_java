@@ -1,0 +1,214 @@
+package suriya;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.logging.Logger;
+
+public class ATM {
+    private static final Logger LOGGER = Logger.getLogger(ATM.class.getName());
+    private static List<BankAccount> accounts = new ArrayList<>();
+    private static BankAccount currentAccount;
+
+    public static void main(String[] args) {
+        Scanner scan = new Scanner(System.in);
+
+        // Account Creation/Login
+        while (true) {
+            System.out.println("WELCOME TO ENHANCED BANK SYSTEM!");
+            System.out.println("\n1.Create Account\n2.Login\n3.Exit\n");
+
+            int loginChoice = scan.nextInt();
+
+            switch (loginChoice) {
+                case 1 -> createAccount();
+                case 2 -> {
+                    currentAccount = login();
+                    if (currentAccount != null) {
+                        System.out.println("Login successful. Welcome, " + currentAccount.getName() + "!");
+                        performATMOperations();
+                    }
+                }
+                case 3 -> {
+                    System.out.println("Exiting the program. Thank you!");
+                    return;
+                }
+                default -> System.out.println("Invalid choice. Please enter a valid option.");
+            }
+        }
+    }
+
+    private static BankAccount login() {
+        Scanner scan = new Scanner(System.in);
+
+        if (accounts.isEmpty()) {
+            System.out.println("No accounts available. Please create an account first.");
+            return null;
+        }
+
+        System.out.println("Enter account number to login:");
+        for (int i = 0; i < accounts.size(); i++) {
+            System.out.println((i + 1) + ". " + accounts.get(i).getName());
+        }
+
+        int accountChoice = Integer.parseInt(scan.nextLine().trim());
+        if (accountChoice > 0 && accountChoice <= accounts.size()) {
+            BankAccount selectedAccount = accounts.get(accountChoice - 1);
+            
+            // Check PIN
+            System.out.println("Enter PIN for " + selectedAccount.getName() + "'s account:");
+            int enteredPIN = scan.nextInt();
+            
+            if (enteredPIN == selectedAccount.getPin()) {
+                return selectedAccount;
+            } else {
+                System.out.println("Incorrect PIN. Login failed.");
+                return null;
+            }
+        } else {
+            System.out.println("Invalid choice. Please enter a valid option.");
+            return null;
+        }
+    }
+
+    private static void createAccount() {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter your name: ");
+        String name = scan.nextLine();
+        System.out.println("Enter initial balance: ");
+        double initialBalance = scan.nextDouble();
+        scan.nextLine(); // Consume the newline character
+        System.out.println("Set a 4-digit PIN for your account: ");
+        int pin = Integer.parseInt(scan.nextLine().trim());
+
+        BankAccount newAccount = new BankAccount(name, initialBalance, pin);
+        accounts.add(newAccount);
+        System.out.println("Account created successfully!");
+    }
+
+
+    private static void performATMOperations() {
+        Scanner scan = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("\nATM Operations:");
+            System.out.println("1.Withdraw\n2.Deposit\n3.CheckBalance\n4.ShowTransactionHistory\n5.Logout\n");
+
+            int choice = scan.nextInt();
+
+            switch (choice) {
+                case 1 -> withdraw();
+                case 2 -> deposit();
+                case 3 -> checkBalance();
+                case 4 -> showTransactionHistory();
+                case 5 -> {
+                    System.out.println("Logout successful. Goodbye, " + currentAccount.getName() + "!");
+                    currentAccount = null;
+                    return;
+                }
+                default -> System.out.println("Invalid choice. Please enter a valid option.");
+            }
+        }
+    }
+
+    private static void withdraw() {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter the withdrawal amount");
+        double amount = scan.nextDouble();
+
+        try {
+            if (amount <= 0) {
+                throw new IllegalArgumentException("Invalid amount. Please enter a positive value.");
+            }
+
+            currentAccount.withdraw(amount);
+            System.out.println("Withdrawal successful");
+            LOGGER.info("Withdrawal successful");
+        } catch (IllegalArgumentException | BankAccount.InsufficientFundsException e) {
+            System.out.println(e.getMessage());
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    private static void deposit() {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter the deposit amount");
+        double amount = scan.nextDouble();
+
+        try {
+            if (amount <= 0) {
+                throw new IllegalArgumentException("Invalid amount. Please enter a positive value.");
+            }
+
+            currentAccount.deposit(amount);
+            System.out.println("Deposit successful");
+            LOGGER.info("Deposit successful");
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    private static void checkBalance() {
+        System.out.println("Current Balance: $" + currentAccount.getBalance());
+    }
+
+    private static void showTransactionHistory() {
+        System.out.println("Transaction History:");
+        for (String transaction : currentAccount.getTransactionHistory()) {
+            System.out.println(transaction);
+        }
+        System.out.println("Current Balance: $" + currentAccount.getBalance());
+    }
+
+    // ... rest of the methods and classes remain unchanged
+}
+
+class BankAccount {
+    private String name;
+    private double balance;
+    private int pin;
+    private List<String> transactionHistory;
+
+    public BankAccount(String name, double initialBalance, int pin) {
+        this.name = name;
+        this.balance = initialBalance;
+        this.pin = pin;
+        this.transactionHistory = new ArrayList<>();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+
+    public int getPin() {
+        return pin;
+    }
+
+    public List<String> getTransactionHistory() {
+        return transactionHistory;
+    }
+
+    public void deposit(double amount) {
+        balance += amount;
+        transactionHistory.add("Deposit: +$" + amount);
+    }
+
+    public void withdraw(double amount) throws InsufficientFundsException {
+        if (amount > balance) {
+            throw new InsufficientFundsException("Insufficient funds. Withdrawal not possible.");
+        } else {
+            balance -= amount;
+            transactionHistory.add("Withdrawal: -$" + amount);
+        }
+    }
+
+    public static class InsufficientFundsException extends Exception {
+        public InsufficientFundsException(String message) {
+            super(message);
+        }
+    }
+}
